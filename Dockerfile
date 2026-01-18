@@ -5,13 +5,16 @@ ARG TARGETARCH
 
 WORKDIR /usr/src/app/
 
-# Copy the source code and protobuf definitions
-# The .csproj expects 'pb' to be in a specific relative path
-COPY ./src/ ./src/
-COPY ./pb/ ./pb/
+# Copy only project files first for better layer caching
+COPY ./src/cart.csproj ./src/
+COPY ./NuGet.config ./
 
 # Restore dependencies for the target architecture
 RUN dotnet restore ./src/cart.csproj -r linux-musl-$TARGETARCH
+
+# Copy the remaining source code and protobuf definitions
+COPY ./src/ ./src/
+COPY ./pb/ ./pb/
 
 # Publish as a self-contained, single-file executable
 RUN dotnet publish ./src/cart.csproj -r linux-musl-$TARGETARCH --no-restore -o /cart
