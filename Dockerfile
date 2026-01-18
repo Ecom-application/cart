@@ -6,18 +6,18 @@ ARG TARGETARCH
 WORKDIR /usr/src/app/
 
 # Copy only project files first for better layer caching
-COPY ./src/cart.csproj ./src/
+COPY ./src/cart.csproj ./
 COPY ./NuGet.config ./
 
 # Restore dependencies for the target architecture
-RUN dotnet restore ./src/cart.csproj -r linux-musl-$TARGETARCH
+RUN dotnet restore ./cart.csproj -r linux-musl-$TARGETARCH
 
 # Copy the remaining source code and protobuf definitions
 COPY ./src/ ./src/
 COPY ./pb/ ./pb/
 
 # Publish as a self-contained, single-file executable
-RUN dotnet publish ./src/cart.csproj -r linux-musl-$TARGETARCH --no-restore -o /cart
+RUN dotnet publish ./cart.csproj -r linux-musl-$TARGETARCH --no-restore -o /cart
 
 # Stage 2: Final runtime image
 # Use the alpine-based runtime-deps for a lightweight container
