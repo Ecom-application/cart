@@ -1,35 +1,33 @@
 # Stage 1: Build the application
-# Use the .NET 8 SDK image for building
+# Use the .NET 8 SDK for building as required by the project file
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
 ARG TARGETARCH
 
 WORKDIR /usr/src/app/
 
 # Copy the source code and protobuf definitions
-# Based on the provided project structure
+# The .csproj expects 'pb' to be in a specific relative path
 COPY ./src/ ./src/
 COPY ./pb/ ./pb/
 
-# Restore dependencies for the specific target architecture
+# Restore dependencies for the target architecture
 RUN dotnet restore ./src/cart.csproj -r linux-musl-$TARGETARCH
 
-# Publish the application as a self-contained executable
+# Publish as a self-contained, single-file executable
 RUN dotnet publish ./src/cart.csproj -r linux-musl-$TARGETARCH --no-restore -o /cart
 
-# Stage 2: Create the runtime image
-# Use a minimal alpine-based runtime-deps image
+# Stage 2: Final runtime image
+# Use the alpine-based runtime-deps for a lightweight container
 FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine3.20
 
 WORKDIR /usr/src/app/
-
-# Copy the published output from the builder stage
 COPY --from=builder /cart/ ./
 
-# Environment variable to prevent reloading config on change in container environments
+# Disable configuration reloading to optimize for container environments
 ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 
-# Expose the port used by the Cart Service
+# The service uses Kestrel with HTTP2 for gRPC
+# It will listen on the port provided by the CART_PORT environment variable
 EXPOSE ${CART_PORT}
 
-# Set the entry point to the service executable
 ENTRYPOINT [ "./cart" ]
