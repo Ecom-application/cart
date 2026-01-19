@@ -1,37 +1,34 @@
 # Stage 1: Build the application
-# Use the .NET 8 SDK for building as required by the project file
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS builder
 ARG TARGETARCH
 
 WORKDIR /usr/src/app/
 
-# Copy the remaining source code and protobuf definitions
-COPY ./src/ ./src/
-COPY ./pb/ ./pb/
-
-# Copy only project files first for better layer caching
+# 1. Copy project files and NuGet config first
 COPY ./src/cart.csproj ./src/
 COPY ./NuGet.config ./
 
-# Restore dependencies for the target architecture
+# 2. Copy the pb folder (Required for restore to see gRPC definitions)
+COPY ./pb/ ./pb/
+
+# 3. Restore dependencies
 RUN dotnet restore ./src/cart.csproj -r linux-musl-$TARGETARCH
 
+# 4. NOW copy the rest of the source code (After restore, so it doesn't overwrite)
+COPY ./src/ ./src/
 
-# Publish as a self-contained, single-file executable
+# 5. Build and Publish
 RUN dotnet publish ./src/cart.csproj -r linux-musl-$TARGETARCH --no-restore -o /cart
 
 # Stage 2: Final runtime image
-# Use the alpine-based runtime-deps for a lightweight container
 FROM mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine3.20
 
 WORKDIR /usr/src/app/
 COPY --from=builder /cart/ ./
 
-# Disable configuration reloading to optimize for container environments
 ENV DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false
 
-# The service uses Kestrel with HTTP2 for gRPC
-# It will listen on the port provided by the CART_PORT environment variable
+# Port mapping for the Cart Service
 EXPOSE ${CART_PORT}
 
 ENTRYPOINT [ "./cart" ]
