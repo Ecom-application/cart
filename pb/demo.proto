@@ -1,5 +1,3 @@
-// -----------------Cart service-----------------
-
 service CartService {
     rpc AddItem(AddItemRequest) returns (Empty) {}
     rpc GetCart(GetCartRequest) returns (Cart) {}
