@@ -4,15 +4,15 @@ ARG TARGETARCH
 
 # Set the root workspace
 WORKDIR /usr/src/app/
-
+COPY . .
 # 1. Copy NuGet config to the root
-COPY ./NuGet.config ./
+#COPY ./NuGet.config ./
 
 # 2. Copy the pb folder to /usr/src/app/pb/
-COPY ./pb/ ./pb/
+#COPY ./pb/ ./pb/
 
 # 3. Copy the src folder to /usr/src/app/src/
-COPY ./src/ ./src/
+#COPY ./src/ ./src/
 
 # 4. Move INTO the src folder to run commands
 # This ensures $(ProjectDir) is correctly identified as /usr/src/app/src/
